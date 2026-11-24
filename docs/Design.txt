@@ -1,0 +1,541 @@
+-- Employee Table
+CREATE TABLE employee (
+    ssn CHAR(9) PRIMARY KEY,
+    name TEXT NOT NULL,
+    password TEXT NOT NULL,
+    address TEXT,
+    phone TEXT,
+    salary NUMERIC(100, 2) CHECK (salary >= 0)
+);
+
+-- Manager Table
+CREATE TABLE manager (
+    ssn CHAR(9) PRIMARY KEY,
+    FOREIGN KEY (ssn) REFERENCES employee(ssn) ON DELETE CASCADE
+);
+
+-- Technician Table
+CREATE TABLE technician (
+    ssn CHAR(9) PRIMARY KEY,
+    FOREIGN KEY (ssn) REFERENCES employee(ssn) ON DELETE CASCADE
+);
+
+-- ATC (Air Traffic Controller) Table
+CREATE TABLE atc (
+    ssn CHAR(9) PRIMARY KEY,
+    FOREIGN KEY (ssn) REFERENCES employee(ssn) ON DELETE CASCADE
+);
+
+-- Airplane Model Table
+CREATE TABLE airplane_model (
+    model_number TEXT PRIMARY KEY,
+    capacity INTEGER NOT NULL CHECK (capacity >= 0),
+    weight INTEGER NOT NULL CHECK (weight >= 0)
+);
+
+-- Airplane Table
+CREATE TABLE airplane (
+    reg_number TEXT PRIMARY KEY,
+    model_number TEXT NOT NULL,
+    FOREIGN KEY (model_number) REFERENCES airplane_model(model_number) ON DELETE CASCADE
+);
+
+-- Expert Table (Multi-Column Primary Key!)
+CREATE TABLE expert (
+    ssn CHAR(9) NOT NULL,
+    model_number TEXT NOT NULL,
+    PRIMARY KEY (ssn, model_number),
+    FOREIGN KEY (ssn) REFERENCES employee(ssn) ON DELETE CASCADE,
+    FOREIGN KEY (model_number) REFERENCES airplane_model(model_number) ON DELETE CASCADE
+);
+
+-- FAA Test Table
+CREATE TABLE faa_test (
+    test_number INTEGER PRIMARY KEY,
+    name TEXT NOT NULL,
+    max_score INTEGER NOT NULL CHECK (max_score > 0)
+);
+
+-- Test Event Table (Multiple Foreign Keys!)
+CREATE TABLE test_event (
+    test_number INTEGER NOT NULL,
+    ssn CHAR(9) NOT NULL,
+    reg_number TEXT NOT NULL,
+    date DATE NOT NULL,
+    duration INTERVAL,
+    score INTEGER NOT NULL CHECK (score >= 0),
+
+    PRIMARY KEY (test_number, ssn, reg_number, date),
+
+    FOREIGN KEY (test_number) REFERENCES faa_test(test_number) ON DELETE CASCADE,
+    FOREIGN KEY (ssn) REFERENCES employee(ssn) ON DELETE CASCADE,
+    FOREIGN KEY (reg_number) REFERENCES airplane(reg_number) ON DELETE CASCADE
+);
+
+
+
+	•	ON DELETE CASCADE means if an employee, airplane, or test is deleted, related rows also delete automatically (can be changed if you want).
+	•	CHECK constraints make sure salary, capacity, weight, and scores are reasonable (positive or non-negative numbers).
+	•	test_event has a 4-column composite primary key (test_number + ssn + reg_number + date) because it’s a log of multiple related entities.
+	•	Passwords should be stored hashed in a real system, not plain text.
+
+⸻
+
+
+-- Create an index on employee name to speed up name searches
+CREATE INDEX idx_employee_name
+ON employee (name);
+
+-- Create an index on employee salary if you often search by salary range
+CREATE INDEX idx_employee_salary
+ON employee (salary);
+
+-- Create an index on airplane registration number (even though it's PK, but if JOINs happen)
+CREATE INDEX idx_airplane_reg_number
+ON airplane (reg_number);
+
+-- Create an index on airplane model number (for quick lookup)
+CREATE INDEX idx_airplane_model_number
+ON airplane (model_number);
+
+-- Create an index on test_event score (if searching or sorting by score)
+CREATE INDEX idx_test_event_score
+ON test_event (score);
+
+-- Create an index on test_event date (for ordering by date)
+CREATE INDEX idx_test_event_date
+ON test_event (date);
+
+
+-- Insert into employee
+INSERT INTO employee (ssn, name, password, address, phone, salary)
+VALUES 
+('123456789', 'John Doe', 'hashed_password_here', '123 Main St', '555-1234', 60000),
+('987654321', 'Jane Smith', 'hashed_password_here', '456 Elm St', '555-5678', 65000);
+
+-- Insert into manager
+INSERT INTO manager (ssn)
+VALUES ('123456789');
+
+-- Insert into technician
+INSERT INTO technician (ssn)
+VALUES ('987654321');
+
+-- Insert into airplane_model
+INSERT INTO airplane_model (model_number, capacity, weight)
+VALUES ('Boeing747', 416, 183500);
+
+-- Insert into airplane
+INSERT INTO airplane (reg_number, model_number)
+VALUES ('N12345', 'Boeing747');
+
+-- Insert into expert
+INSERT INTO expert (ssn, model_number)
+VALUES ('987654321', 'Boeing747');
+
+-- Insert into faa_test
+INSERT INTO faa_test (test_number, name, max_score)
+VALUES (1, 'Engine Inspection', 100);
+
+-- Insert into test_event
+INSERT INTO test_event (test_number, ssn, reg_number, date, duration, score)
+VALUES (1, '987654321', 'N12345', '2025-04-27', INTERVAL '1 hour', 95);
+
+
+
+
+             List of relations
+ Schema |      Name      | Type  |  Owner  
+--------+----------------+-------+---------
+ public | airplane       | table | brown02
+ public | airplane_model | table | brown02
+ public | atc            | table | brown02
+ public | employee       | table | brown02
+ public | expert         | table | brown02
+ public | faa_test       | table | brown02
+ public | manager        | table | brown02
+ public | student        | table | brown02
+ public | technician     | table | brown02
+ public | test_event     | table | brown02
+(10 rows)
+
+brown02=> \dt employee
+          List of relations
+ Schema |   Name   | Type  |  Owner  
+--------+----------+-------+---------
+ public | employee | table | brown02
+(1 row)
+
+brown02=> SELECT * FROM public.employee;
+ ssn | name | password | address | phone | salary 
+-----+------+----------+---------+-------+--------
+(0 rows)
+
+brown02=> \d airport.employee
+Did not find any relation named "airport.employee".
+brown02=> SELECT * FROM airport.employee;
+ERROR:  relation "airport.employee" does not exist
+LINE 1: SELECT * FROM airport.employee;
+                      ^
+brown02=> SELECT * FROM public.employee;
+ ssn | name | password | address | phone | salary 
+-----+------+----------+---------+-------+--------
+(0 rows)
+
+brown02=> \d public.employee
+brown02=> \dt
+             List of relations
+ Schema |      Name      | Type  |  Owner  
+--------+----------------+-------+---------
+ public | airplane       | table | brown02
+ public | airplane_model | table | brown02
+ public | atc            | table | brown02
+ public | employee       | table | brown02
+ public | expert         | table | brown02
+ public | faa_test       | table | brown02
+ public | manager        | table | brown02
+ public | student        | table | brown02
+ public | technician     | table | brown02
+ public | test_event     | table | brown02
+(10 rows)
+
+brown02=> \d public.employee
+brown02=> INSERT INTO public.employee (ssn, name, password, address, phone, salary)VALUES (  '835271532',  'Test Admin',  'aacc
+0ee38f0dc75c4f453f1c6d19354c105b59159b706e1a487cac56b797ded2',  '321 Terminal Rd',  '555-1234',  90000);
+INSERT 0 1
+brown02=> INSERT INTO public.manager (ssn) VALUES ('835271532');
+INSERT 0 1
+brown02=> \d public.employee
+                  Table "public.employee"
+  Column  |      Type      | Collation | Nullable | Default 
+----------+----------------+-----------+----------+---------
+ ssn      | character(9)   |           | not null | 
+ name     | text           |           | not null | 
+ password | text           |           | not null | 
+ address  | text           |           |          | 
+ phone    | text           |           |          | 
+ salary   | numeric(100,2) |           |          | 
+Indexes:
+    "employee_pkey" PRIMARY KEY, btree (ssn)
+Check constraints:
+    "employee_salary_check" CHECK (salary >= 0::numeric)
+Referenced by:
+    TABLE "atc" CONSTRAINT "atc_ssn_fkey" FOREIGN KEY (ssn) REFERENCES employee(ssn) ON DELETE CASCADE
+    TABLE "expert" CONSTRAINT "expert_ssn_fkey" FOREIGN KEY (ssn) REFERENCES employee(ssn) ON DELETE CASCADE
+    TABLE "manager" CONSTRAINT "manager_ssn_fkey" FOREIGN KEY (ssn) REFERENCES employee(ssn) ON DELETE CASCADE
+    TABLE "technician" CONSTRAINT "technician_ssn_fkey" FOREIGN KEY (ssn) REFERENCES employee(ssn) ON DELETE CASCADE
+    TABLE "test_event" CONSTRAINT "test_event_ssn_fkey" FOREIGN KEY (ssn) REFERENCES employee(ssn) ON DELETE CASCADE
+
+brown02=> \dt public.employee
+          List of relations
+ Schema |   Name   | Type  |  Owner  
+--------+----------+-------+---------
+ public | employee | table | brown02
+(1 row)
+
+brown02=> SELECT * FROM public.employee
+brown02-> SELECT * FROM public.employee;
+ERROR:  syntax error at or near "SELECT"
+LINE 2: SELECT * FROM public.employee;
+        ^
+brown02=> q
+brown02-> SELECT * FROM public.employee
+brown02-> SELECT * FROM public.employee;
+ERROR:  syntax error at or near "q"
+LINE 1: q
+        ^
+brown02=> 
+brown02=> SELECT * FROM public.employee;
+brown02=> \dt
+             List of relations
+ Schema |      Name      | Type  |  Owner  
+--------+----------------+-------+---------
+ public | airplane       | table | brown02
+ public | airplane_model | table | brown02
+ public | atc            | table | brown02
+ public | employee       | table | brown02
+ public | expert         | table | brown02
+ public | faa_test       | table | brown02
+ public | manager        | table | brown02
+ public | student        | table | brown02
+ public | technician     | table | brown02
+ public | test_event     | table | brown02
+(10 rows)
+
+brown02=> CREATE SCHEMA airport;
+CREATE SCHEMA
+brown02=> \dt
+             List of relations
+ Schema |      Name      | Type  |  Owner  
+--------+----------------+-------+---------
+ public | airplane       | table | brown02
+ public | airplane_model | table | brown02
+ public | atc            | table | brown02
+ public | employee       | table | brown02
+ public | expert         | table | brown02
+ public | faa_test       | table | brown02
+ public | manager        | table | brown02
+ public | student        | table | brown02
+ public | technician     | table | brown02
+ public | test_event     | table | brown02
+(10 rows)
+
+brown02=> 
+brown02=> CREATE SCHEMA airport;
+ERROR:  schema "airport" already exists
+brown02=> \dt
+             List of relations
+ Schema |      Name      | Type  |  Owner  
+--------+----------------+-------+---------
+ public | airplane       | table | brown02
+ public | airplane_model | table | brown02
+ public | atc            | table | brown02
+ public | employee       | table | brown02
+ public | expert         | table | brown02
+ public | faa_test       | table | brown02
+ public | manager        | table | brown02
+ public | student        | table | brown02
+ public | technician     | table | brown02
+ public | test_event     | table | brown02
+(10 rows)
+
+brown02=> \dn
+  List of schemas
+  Name   |  Owner   
+---------+----------
+ airport | brown02
+ public  | postgres
+(2 rows)
+
+brown02=> ALTER TABLE public.employee SET SCHEMA airport;
+ALTER TABLE
+brown02=> \dt
+             List of relations
+ Schema |      Name      | Type  |  Owner  
+--------+----------------+-------+---------
+ public | airplane       | table | brown02
+ public | airplane_model | table | brown02
+ public | atc            | table | brown02
+ public | expert         | table | brown02
+ public | faa_test       | table | brown02
+ public | manager        | table | brown02
+ public | student        | table | brown02
+ public | technician     | table | brown02
+ public | test_event     | table | brown02
+(9 rows)
+
+brown02=> ALTER TABLE public.manager SET SCHEMA airport;ALTER TABLE public.technician SET SCHEMA airport;ALTER TABLE public.atc SET SCHEMA airport;ALTER TABLE public.expert SET SCHEMA airport;ALTER TABLE public.airplane SET SCHEMA airport;ALTER TABLE public.airplane_model SET SCHEMA airport;ALTER TABLE public.faa_test SET SCHEMA airport;ALTER TABLE public.test_event SET SCHEMA airport;ALTER TABLE public.student SET SCHEMA airport; -- optional
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+brown02=> 
+brown02=> \dt
+Did not find any relations.
+brown02=> \dt
+Did not find any relations.
+brown02=> \dt airport.*
+             List of relations
+ Schema  |      Name      | Type  |  Owner  
+---------+----------------+-------+---------
+ airport | airplane       | table | brown02
+ airport | airplane_model | table | brown02
+ airport | atc            | table | brown02
+ airport | employee       | table | brown02
+ airport | expert         | table | brown02
+ airport | faa_test       | table | brown02
+ airport | manager        | table | brown02
+ airport | student        | table | brown02
+ airport | technician     | table | brown02
+ airport | test_event     | table | brown02
+(10 rows)
+
+brown02=> 
+
+
+
+
+
+
+
+
+
+
+////////////////////////
+
+
+  File "/s/chopin/n/under/brown02/.local/lib/python3.8/site-packages/flask/app.py", line 1473, in wsgi_app
+    response = self.full_dispatch_request()
+  File "/s/chopin/n/under/brown02/.local/lib/python3.8/site-packages/flask/app.py", line 882, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "/s/chopin/n/under/brown02/.local/lib/python3.8/site-packages/flask/app.py", line 880, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "/s/chopin/n/under/brown02/.local/lib/python3.8/site-packages/flask/app.py", line 865, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+  File "/s/chopin/n/under/brown02/cs430/AirportDB/project-1/manager_app.py", line 161, in login
+    cursor.execute('''
+pyodbc.ProgrammingError: ('42P01', '[42P01] ERROR: relation "airport.employee" does not exist;\nError while preparing parameters (1) (SQLExecDirectW)')
+127.0.0.1 - - [29/Apr/2025 11:50:08] "GET /login?__debugger__=yes&cmd=resource&f=style.css HTTP/1.1" 304 -
+127.0.0.1 - - [29/Apr/2025 11:50:09] "GET /login?__debugger__=yes&cmd=resource&f=debugger.js HTTP/1.1" 304 -
+127.0.0.1 - - [29/Apr/2025 11:50:09] "GET /login?__debugger__=yes&cmd=resource&f=console.png&s=bEV9A5ayC10AGQSdR5qw HTTP/1.1" 200 -
+127.0.0.1 - - [29/Apr/2025 11:50:09] "GET /login?__debugger__=yes&cmd=resource&f=console.png HTTP/1.1" 304 -
+ * Detected change in '/s/chopin/n/under/brown02/cs430/AirportDB/project-1/manager_app.py', reloading
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 967-989-071
+ * Detected change in '/s/chopin/n/under/brown02/cs430/AirportDB/project-1/manager_app.py', reloading
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 967-989-071
+ * Detected change in '/s/chopin/n/under/brown02/cs430/AirportDB/project-1/manager_app.py', reloading
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 967-989-071
+ * Detected change in '/s/chopin/n/under/brown02/cs430/AirportDB/project-1/manager_app.py', reloading
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 967-989-071
+127.0.0.1 - - [29/Apr/2025 11:59:55] "POST /login HTTP/1.1" 500 -
+Traceback (most recent call last):
+  File "/s/chopin/n/under/brown02/.local/lib/python3.8/site-packages/flask/app.py", line 1498, in __call__
+    return self.wsgi_app(environ, start_response)
+  File "/s/chopin/n/under/brown02/.local/lib/python3.8/site-packages/flask/app.py", line 1476, in wsgi_app
+    response = self.handle_exception(e)
+  File "/s/chopin/n/under/brown02/.local/lib/python3.8/site-packages/flask/app.py", line 1473, in wsgi_app
+    response = self.full_dispatch_request()
+  File "/s/chopin/n/under/brown02/.local/lib/python3.8/site-packages/flask/app.py", line 882, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "/s/chopin/n/under/brown02/.local/lib/python3.8/site-packages/flask/app.py", line 880, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "/s/chopin/n/under/brown02/.local/lib/python3.8/site-packages/flask/app.py", line 865, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+  File "/s/chopin/n/under/brown02/cs430/AirportDB/project-1/manager_app.py", line 161, in login
+    cursor.execute('''
+pyodbc.ProgrammingError: ('42P01', '[42P01] ERROR: relation "airport.employee" does not exist;\nError while preparing parameters (1) (SQLExecDirectW)')
+127.0.0.1 - - [29/Apr/2025 11:59:55] "GET /login?__debugger__=yes&cmd=resource&f=style.css HTTP/1.1" 304 -
+127.0.0.1 - - [29/Apr/2025 11:59:55] "GET /login?__debugger__=yes&cmd=resource&f=debugger.js HTTP/1.1" 304 -
+127.0.0.1 - - [29/Apr/2025 11:59:55] "GET /login?__debugger__=yes&cmd=resource&f=console.png&s=BedCCI76cxhbsarLAvGx HTTP/1.1" 200 -
+^C(project-1) juneau:~/cs430/AirportDB/project-1$ 
+(project-1) juneau:~/cs430/AirportDB/project-1$ python manager_app.py
+ * Serving Flask app 'manager_app'
+ * Debug mode: on
+WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+ * Running on http://127.0.0.1:5000
+Press CTRL+C to quit
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 967-989-071
+127.0.0.1 - - [29/Apr/2025 12:00:23] "GET / HTTP/1.1" 302 -
+127.0.0.1 - - [29/Apr/2025 12:00:23] "GET /login HTTP/1.1" 200 -
+127.0.0.1 - - [29/Apr/2025 12:00:53] "POST /login HTTP/1.1" 500 -
+Traceback (most recent call last):
+  File "/s/chopin/n/under/brown02/.local/lib/python3.8/site-packages/flask/app.py", line 1498, in __call__
+    return self.wsgi_app(environ, start_response)
+  File "/s/chopin/n/under/brown02/.local/lib/python3.8/site-packages/flask/app.py", line 1476, in wsgi_app
+    response = self.handle_exception(e)
+  File "/s/chopin/n/under/brown02/.local/lib/python3.8/site-packages/flask/app.py", line 1473, in wsgi_app
+    response = self.full_dispatch_request()
+  File "/s/chopin/n/under/brown02/.local/lib/python3.8/site-packages/flask/app.py", line 882, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "/s/chopin/n/under/brown02/.local/lib/python3.8/site-packages/flask/app.py", line 880, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "/s/chopin/n/under/brown02/.local/lib/python3.8/site-packages/flask/app.py", line 865, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+  File "/s/chopin/n/under/brown02/cs430/AirportDB/project-1/manager_app.py", line 161, in login
+    cursor.execute('''
+pyodbc.ProgrammingError: ('42P01', '[42P01] ERROR: relation "airport.employee" does not exist;\nError while preparing parameters (1) (SQLExecDirectW)')
+127.0.0.1 - - [29/Apr/2025 12:00:53] "GET /login?__debugger__=yes&cmd=resource&f=debugger.js HTTP/1.1" 304 -
+127.0.0.1 - - [29/Apr/2025 12:00:53] "GET /login?__debugger__=yes&cmd=resource&f=style.css HTTP/1.1" 304 -
+127.0.0.1 - - [29/Apr/2025 12:00:54] "GET /login?__debugger__=yes&cmd=resource&f=console.png&s=K8iT6eGW8XU4wn0fepNt HTTP/1.1" 200 -
+127.0.0.1 - - [29/Apr/2025 12:00:54] "GET /login?__debugger__=yes&cmd=resource&f=console.png HTTP/1.1" 304 -
+ * Detected change in '/s/chopin/n/under/brown02/cs430/AirportDB/project-1/manager_app.py', reloading
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 967-989-071
+ * Detected change in '/s/chopin/n/under/brown02/cs430/AirportDB/project-1/manager_app.py', reloading
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 967-989-071
+ * Detected change in '/s/chopin/n/under/brown02/cs430/AirportDB/project-1/manager_app.py', reloading
+ * Restarting with stat
+  File "/s/chopin/n/under/brown02/cs430/AirportDB/project-1/manager_app.py", line 171
+    if user and verify_password(password, user[0]):
+    ^
+IndentationError: unexpected indent
+(project-1) juneau:~/cs430/AirportDB/project-1$ python manager_app.py
+ * Serving Flask app 'manager_app'
+ * Debug mode: on
+WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+ * Running on http://127.0.0.1:5000
+Press CTRL+C to quit
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 967-989-071
+127.0.0.1 - - [29/Apr/2025 12:06:06] "GET /login HTTP/1.1" 200 -
+127.0.0.1 - - [29/Apr/2025 12:06:09] "GET /login HTTP/1.1" 200 -
+127.0.0.1 - - [29/Apr/2025 12:06:11] "GET /login HTTP/1.1" 200 -
+127.0.0.1 - - [29/Apr/2025 12:06:23] "POST /login HTTP/1.1" 302 -
+127.0.0.1 - - [29/Apr/2025 12:06:23] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [29/Apr/2025 12:06:26] "GET /employee/add HTTP/1.1" 200 -
+127.0.0.1 - - [29/Apr/2025 12:19:27] "GET /employee/update HTTP/1.1" 200 -
+127.0.0.1 - - [29/Apr/2025 12:19:30] "GET /employee/delete HTTP/1.1" 200 -
+127.0.0.1 - - [29/Apr/2025 12:19:39] "GET /employee/delete HTTP/1.1" 200 -
+127.0.0.1 - - [29/Apr/2025 12:19:44] "GET /models/add HTTP/1.1" 200 -
+127.0.0.1 - - [29/Apr/2025 12:19:49] "GET /faa_tests/add HTTP/1.1" 200 -
+127.0.0.1 - - [29/Apr/2025 12:19:52] "GET /tests HTTP/1.1" 200 -
+ * Detected change in '/s/chopin/n/under/brown02/cs430/AirportDB/project-1/manager_app.py', reloading
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 967-989-071
+ * Detected change in '/s/chopin/n/under/brown02/cs430/AirportDB/project-1/manager_app.py', reloading
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 967-989-071
+ * Detected change in '/s/chopin/n/under/brown02/cs430/AirportDB/project-1/manager_app.py', reloading
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 967-989-071
+ * Detected change in '/s/chopin/n/under/brown02/cs430/AirportDB/project-1/manager_app.py', reloading
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 967-989-071
+ * Detected change in '/s/chopin/n/under/brown02/cs430/AirportDB/project-1/manager_app.py', reloading
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 967-989-071
+
+^C(project-1) juneau:~/cs430/AirportDB/project-1$ python manager_app.py
+ * Serving Flask app 'manager_app'
+ * Debug mode: on
+WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+ * Running on http://127.0.0.1:5000
+Press CTRL+C to quit
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 967-989-071
+
+
+
+(project-1) juneau:~/cs430/AirportDB/project-1$ python manager_app.py
+ * Serving Flask app 'manager_app'
+ * Debug mode: on
+WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+ * Running on http://127.0.0.1:5000
+Press CTRL+C to quit
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 967-989-071
+^C(project-1) juneau:~/cs430/AirportDB/project-1$ python manager_app.py
+ * Serving Flask app 'manager_app'
+ * Debug mode: on
+WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+ * Running on http://127.0.0.1:5000
+Press CTRL+C to quit
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 967-989-071
